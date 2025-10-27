@@ -2192,7 +2192,36 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.classList.add('loaded');
 });
 
+// ==================== RAZORPAY CONFIGURATION ====================
+const RAZORPAY_CONFIG = {
+    key: "rzp_live_RYaHvcfgNhAmzQ", // YAHAN APNI LIVE KEY DALO
+    currency: "INR"
+};
 
+// Razorpay Payment Function
+async function processRazorpayPayment(order) {
+    try {
+        const options = {
+            key: RAZORPAY_CONFIG.key,
+            amount: order.total * 100,
+            currency: RAZORPAY_CONFIG.currency,
+            name: "SparkInvoice",
+            description: `Order #${order.orderId}`,
+            handler: function(response) {
+                // Payment successful
+                order.razorpayPaymentId = response.razorpay_payment_id;
+                order.paymentStatus = 'completed';
+                showOrderSuccess(order);
+            }
+        };
+        
+        const rzp = new Razorpay(options);
+        rzp.open();
+        
+    } catch (error) {
+        showFlipkartNotification('Payment failed. Please try again.');
+    }
+}
 
 
 
@@ -2341,27 +2370,27 @@ function createCheckoutModal() {
             </div>
         </div>
         
-        <!-- Step 3: Payment -->
+               <!-- Step 3: Payment -->
         <div id="step3" style="padding: 20px; display: none;">
             <h3 style="margin-bottom: 20px; color: var(--primary); text-shadow: var(--neon-glow);">Select Payment Method</h3>
             
             <div style="background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid rgba(0, 247, 255, 0.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); margin-bottom: 20px;">
                 <div style="margin-bottom: 15px;">
-                    <h4 style="margin-bottom: 15px; color: var(--primary);">UPI Apps</h4>
+                    <h4 style="margin-bottom: 15px; color: var(--primary);">UPI Apps (Direct Open)</h4>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div class="payment-option" onclick="selectPayment('phonepe')" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
+                        <div class="payment-option" onclick="openPhonePe()" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
                             <div style="font-size: 2rem; margin-bottom: 8px;">📱</div>
                             <div style="font-weight: bold; color: var(--primary);">PhonePe</div>
                         </div>
-                        <div class="payment-option" onclick="selectPayment('gpay')" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
+                        <div class="payment-option" onclick="openGooglePay()" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
                             <div style="font-size: 2rem; margin-bottom: 8px;">💸</div>
                             <div style="font-weight: bold; color: var(--primary);">Google Pay</div>
                         </div>
-                        <div class="payment-option" onclick="selectPayment('paytm')" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
+                        <div class="payment-option" onclick="openPaytm()" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
                             <div style="font-size: 2rem; margin-bottom: 8px;">🏪</div>
                             <div style="font-weight: bold; color: var(--primary);">Paytm</div>
                         </div>
-                        <div class="payment-option" onclick="selectPayment('amazonpay')" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
+                        <div class="payment-option" onclick="openAmazonPay()" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
                             <div style="font-size: 2rem; margin-bottom: 8px;">📦</div>
                             <div style="font-weight: bold; color: var(--primary);">Amazon Pay</div>
                         </div>
@@ -2371,6 +2400,15 @@ function createCheckoutModal() {
                 <div style="border-top: 1px solid rgba(0, 247, 255, 0.2); padding-top: 15px;">
                     <h4 style="margin-bottom: 15px; color: var(--primary);">Other Payment Methods</h4>
                     <div style="display: grid; gap: 10px;">
+                        <div class="payment-option" onclick="selectPayment('razorpay')" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="font-size: 1.5rem;">🔒</div>
+                                <div>
+                                    <div style="font-weight: bold; color: var(--light);">Razorpay (All Methods)</div>
+                                    <div style="font-size: 0.9rem; color: var(--light); opacity: 0.8;">Cards/UPI/Net Banking</div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="payment-option" onclick="selectPayment('card')" style="border: 2px solid rgba(0, 247, 255, 0.3); border-radius: 15px; padding: 15px; cursor: pointer; background: rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <div style="font-size: 1.5rem;">💳</div>
@@ -2407,6 +2445,34 @@ function createCheckoutModal() {
     document.body.insertAdjacentHTML('beforeend', checkoutHTML);
 }
 
+// Direct UPI App Open Functions - YEH BHI ADD KARNA
+function openPhonePe() {
+    const amount = document.getElementById('paymentAmount').textContent;
+    const upiId = "9672932630@paytm"; // APNA PAYTM UPI ID
+    const url = `phonepe://pay?pa=${upiId}&pn=SparkInvoice&am=${amount}&cu=INR`;
+    window.location.href = url;
+}
+
+function openGooglePay() {
+    const amount = document.getElementById('paymentAmount').textContent;
+    const upiId = "9672932630@paytm"; // SAME PAYTM UPI ID
+    const url = `tez://upi/pay?pa=${upiId}&pn=SparkInvoice&am=${amount}&cu=INR`;
+    window.location.href = url;
+}
+
+function openPaytm() {
+    const amount = document.getElementById('paymentAmount').textContent;
+    const upiId = "9672932630@paytm"; // APNA PAYTM UPI ID
+    const url = `paytmmp://pay?pa=${upiId}&pn=SparkInvoice&am=${amount}&cu=INR`;
+    window.location.href = url;
+}
+
+function openAmazonPay() {
+    const amount = document.getElementById('paymentAmount').textContent;
+    const upiId = "9672932630@paytm"; // SAME PAYTM UPI ID
+    const url = `amazonpay://pay?pa=${upiId}&pn=SparkInvoice&am=${amount}&cu=INR`;
+    window.location.href = url;
+}
 // Order Success Modal
 function createOrderSuccessModal() {
     const successHTML = `
@@ -2465,6 +2531,47 @@ function setupProductButtons() {
             showFlipkartNotification(`"${productName}" added to cart!`);
         });
     });
+}
+
+
+// Updated processPayment function
+async function processPayment() {
+    const name = document.getElementById('customerName').value;
+    const phone = document.getElementById('customerPhone').value;
+    const pincode = document.getElementById('customerPincode').value;
+    const address = document.getElementById('customerAddress').value;
+    
+    // Validation
+    if (!name || !phone || !pincode || !address) {
+        showFlipkartNotification('Please fill all required fields');
+        return;
+    }
+    
+    if (!selectedPayment) {
+        showFlipkartNotification('Please select a payment method');
+        return;
+    }
+    
+    // Create order
+    const order = {
+        orderId: 'SPK' + Date.now(),
+        customer: { name, phone, pincode, address },
+        items: [...shoppingCart],
+        total: shoppingCart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        paymentMethod: selectedPayment,
+        date: new Date().toLocaleDateString('en-IN')
+    };
+    
+    // Payment methods handle karo
+    if (selectedPayment === 'razorpay') {
+        await processRazorpayPayment(order);
+    } else if (selectedPayment === 'cod') {
+        showFlipkartNotification('💰 Cash on Delivery Selected');
+        setTimeout(() => showOrderSuccess(order), 1000);
+    } else {
+        showFlipkartNotification(`Processing ${selectedPayment} payment...`);
+        setTimeout(() => showOrderSuccess(order), 2000);
+    }
 }
 
 // Add to Cart Function
@@ -2684,8 +2791,8 @@ function selectPayment(method) {
     event.currentTarget.style.boxShadow = 'var(--neon-glow)';
 }
 
-// Process Payment
-function processPayment() {
+// Process Payment - UPDATED FUNCTION
+async function processPayment() {
     const name = document.getElementById('customerName').value;
     const phone = document.getElementById('customerPhone').value;
     const pincode = document.getElementById('customerPincode').value;
@@ -2697,11 +2804,6 @@ function processPayment() {
         return;
     }
     
-    if (phone.length !== 10 || !/^\d+$/.test(phone)) {
-        showFlipkartNotification('Please enter valid 10-digit phone number');
-        return;
-    }
-    
     if (!selectedPayment) {
         showFlipkartNotification('Please select a payment method');
         return;
@@ -2710,12 +2812,7 @@ function processPayment() {
     // Create order
     const order = {
         orderId: 'SPK' + Date.now(),
-        customer: {
-            name: name,
-            phone: phone,
-            pincode: pincode,
-            address: address
-        },
+        customer: { name, phone, pincode, address },
         items: [...shoppingCart],
         total: shoppingCart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
         paymentMethod: selectedPayment,
@@ -2723,13 +2820,17 @@ function processPayment() {
         time: new Date().toLocaleTimeString('en-IN')
     };
     
-    // Show processing
-    showFlipkartNotification(`Processing ${selectedPayment.toUpperCase()} payment...`);
-    
-    // Simulate payment success
-    setTimeout(() => {
-        showOrderSuccess(order);
-    }, 2000);
+    // Payment methods handle karo
+    if (selectedPayment === 'razorpay') {
+        await processRazorpayPayment(order);
+    } else if (selectedPayment === 'cod') {
+        showFlipkartNotification('💰 Cash on Delivery Selected');
+        setTimeout(() => showOrderSuccess(order), 1000);
+    } else {
+        // UPI direct apps ke liye simulation
+        showFlipkartNotification(`Opening ${selectedPayment}...`);
+        // Yahan UPI direct open ho jayega
+    }
 }
 
 // Show Order Success
@@ -6005,247 +6106,6 @@ function resetInvoiceFilters() {
 
 
 
-// Create Loan Management Modal
-function createLoanManagementModal() {
-    const modalHTML = `
-    <div id="loanManagementModal" class="modal">
-        <div class="modal-content large-modal">
-            <div class="modal-header">
-                <h2><i class="fas fa-hand-holding-usd"></i> Loan Management</h2>
-                <div class="header-actions">
-                    <button class="btn btn-primary" onclick="addNewLoanCustomer()">
-                        <i class="fas fa-plus"></i> Add Customer
-                    </button>
-                    <button class="modal-close" onclick="closeModal('loanManagementModal')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div class="loan-management-container">
-                    <!-- Loan Summary -->
-                    <div class="loan-summary-grid">
-                        <div class="loan-summary-card">
-                            <div class="loan-summary-icon total-loan">
-                                <i class="fas fa-money-bill-wave"></i>
-                            </div>
-                            <div class="loan-summary-content">
-                                <div class="loan-summary-number" id="totalLoanAmount">₹0</div>
-                                <div class="loan-summary-label">Total Loan Given</div>
-                            </div>
-                        </div>
-                        <div class="loan-summary-card">
-                            <div class="loan-summary-icon total-received">
-                                <i class="fas fa-cash-register"></i>
-                            </div>
-                            <div class="loan-summary-content">
-                                <div class="loan-summary-number" id="totalReceivedAmount">₹0</div>
-                                <div class="loan-summary-label">Total Received</div>
-                            </div>
-                        </div>
-                        <div class="loan-summary-card">
-                            <div class="loan-summary-icon pending-amount">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="loan-summary-content">
-                                <div class="loan-summary-number" id="totalPendingAmount">₹0</div>
-                                <div class="loan-summary-label">Pending Amount</div>
-                            </div>
-                        </div>
-                        <div class="loan-summary-card">
-                            <div class="loan-summary-icon total-customers">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="loan-summary-content">
-                                <div class="loan-summary-number" id="totalLoanCustomers">0</div>
-                                <div class="loan-summary-label">Loan Customers</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Loan Customers Table -->
-                    <div class="loan-table-container">
-                        <table class="loan-customers-table">
-                            <thead>
-                                <tr>
-                                    <th>Customer</th>
-                                    <th>Contact</th>
-                                    <th>Total Loan</th>
-                                    <th>Paid</th>
-                                    <th>Balance</th>
-                                    <th>Last Transaction</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="loanCustomersBody">
-                                <!-- Loan customers will load here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-    
-    if (!document.getElementById('loanManagementModal')) {
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-    }
-}
-
-// Load Loan Customers - FIXED
-function loadLoanCustomers() {
-    const loanCustomers = JSON.parse(localStorage.getItem('sparkinvoice_loans') || '[]');
-    updateLoanSummary(loanCustomers);
-    renderLoanCustomers(loanCustomers);
-}
-
-// Update Loan Summary
-function updateLoanSummary(loanCustomers) {
-    const totalLoan = loanCustomers.reduce((sum, cust) => sum + cust.totalLoan, 0);
-    const totalReceived = loanCustomers.reduce((sum, cust) => sum + cust.totalDeposited, 0);
-    const totalPending = totalLoan - totalReceived;
-    
-    document.getElementById('totalLoanAmount').textContent = '₹' + totalLoan.toFixed(2);
-    document.getElementById('totalReceivedAmount').textContent = '₹' + totalReceived.toFixed(2);
-    document.getElementById('totalPendingAmount').textContent = '₹' + totalPending.toFixed(2);
-    document.getElementById('totalLoanCustomers').textContent = loanCustomers.length;
-}
-
-// Render Loan Customers
-function renderLoanCustomers(loanCustomers) {
-    const tableBody = document.getElementById('loanCustomersBody');
-    
-    if (loanCustomers.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="8" class="empty-table">
-                    <div class="empty-state">
-                        <i class="fas fa-hand-holding-usd"></i>
-                        <h3>No Loan Customers</h3>
-                        <p>Add customers to manage loans</p>
-                        <button class="btn btn-primary" onclick="addNewLoanCustomer()">
-                            <i class="fas fa-plus"></i> Add First Customer
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let tableHTML = '';
-    
-    loanCustomers.forEach(customer => {
-        const balance = customer.totalLoan - customer.totalDeposited;
-        const lastTransaction = customer.transactions && customer.transactions.length > 0 
-            ? customer.transactions[customer.transactions.length - 1] 
-            : null;
-        
-        tableHTML += `
-            <tr class="loan-customer-row">
-                <td>
-                    <div class="customer-cell-detailed">
-                        <div class="customer-avatar-medium">
-                            ${customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </div>
-                        <div class="customer-details">
-                            <div class="customer-name">${customer.name}</div>
-                            <div class="customer-id">${customer.id}</div>
-                        </div>
-                    </div>
-                </td>
-                <td>
-                    <div class="contact-cell">
-                        <div class="phone-number">${customer.mobile}</div>
-                        <div class="customer-since">Since ${new Date(customer.createdAt).toLocaleDateString('en-IN')}</div>
-                    </div>
-                </td>
-                <td>
-                    <div class="amount-cell">₹${customer.totalLoan.toFixed(2)}</div>
-                </td>
-                <td>
-                    <div class="amount-cell paid-amount">₹${customer.totalDeposited.toFixed(2)}</div>
-                </td>
-                <td>
-                    <div class="amount-cell ${balance > 0 ? 'pending-amount' : 'cleared-amount'}">
-                        ₹${Math.abs(balance).toFixed(2)}
-                    </div>
-                </td>
-                <td>
-                    <div class="last-transaction">
-                        ${lastTransaction ? `
-                            <div class="transaction-type ${lastTransaction.type}">${lastTransaction.type}</div>
-                            <div class="transaction-amount">₹${lastTransaction.amount.toFixed(2)}</div>
-                            <div class="transaction-date">${new Date(lastTransaction.date).toLocaleDateString('en-IN')}</div>
-                        ` : 'No transactions'}
-                    </div>
-                </td>
-                <td>
-                    <span class="status-badge ${balance === 0 ? 'cleared' : balance > 0 ? 'pending' : 'overpaid'}">
-                        ${balance === 0 ? 'Cleared' : balance > 0 ? 'Pending' : 'Overpaid'}
-                    </span>
-                </td>
-                <td>
-                    <div class="actions-cell">
-                        <button class="btn-icon-small" onclick="addLoanTransaction('${customer.id}')" title="Add Transaction">
-                            <i class="fas fa-plus-circle"></i>
-                        </button>
-                        <button class="btn-icon-small" onclick="viewLoanHistory('${customer.id}')" title="View History">
-                            <i class="fas fa-history"></i>
-                        </button>
-                        <button class="btn-icon-small" onclick="editLoanCustomer('${customer.id}')" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tableBody.innerHTML = tableHTML;
-}
-
-// Open Loan Management
-function openLoanManagement() {
-    createLoanManagementModal();
-    loadLoanCustomers();
-    openModal('loanManagementModal');
-}
-
-// Add New Loan Customer
-function addNewLoanCustomer() {
-    const name = prompt('Enter customer name:');
-    if (!name) return;
-    
-    const mobile = prompt('Enter customer mobile number:');
-    if (!mobile) return;
-    
-    const newCustomer = {
-        id: 'LOAN-' + Date.now(),
-        name: name,
-        mobile: mobile,
-        totalLoan: 0,
-        totalDeposited: 0,
-        balance: 0,
-        transactions: [],
-        createdAt: new Date().toISOString()
-    };
-    
-    const loanCustomers = JSON.parse(localStorage.getItem('sparkinvoice_loans') || '[]');
-    loanCustomers.unshift(newCustomer);
-    localStorage.setItem('sparkinvoice_loans', JSON.stringify(loanCustomers));
-    
-    showNotification(`${name} added to loan customers!`, 'success');
-    loadLoanCustomers();
-}
-
-
-
-
-
-
 
 
 
@@ -6469,6 +6329,390 @@ document.addEventListener('DOMContentLoaded', function() {
     createPaymentHistoryModal();
     createCustomerHistoryModal(); // Your existing one
 });
+
+
+
+
+
+
+// Create Invoice History Modal - UNIQUE RECTANGLE DESIGN
+function createInvoiceHistoryModal() {
+    const modalHTML = `
+    <div id="invoiceHistoryModal" class="modal">
+        <div class="modal-content xxlarge-modal">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0c1a3a 0%, #1e3a8a 100%); border-bottom: 2px solid #00f7ff;">
+                <h2 style="color: #00f7ff; text-shadow: 0 0 15px rgba(0, 247, 255, 0.5);">
+                    <i class="fas fa-receipt"></i> Invoice Archive
+                </h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="exportInvoiceData()" style="background: linear-gradient(45deg, #00f7ff, #0099ff);">
+                        <i class="fas fa-file-export"></i> Export
+                    </button>
+                    <button class="modal-close" onclick="closeModal('invoiceHistoryModal')" style="background: rgba(255,255,255,0.1);">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body" style="background: #0f172a;">
+                <!-- Stats Cards -->
+                <div class="stats-cards-grid">
+                    <div class="stat-card-rectangle" style="background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%); border-left: 4px solid #00f7ff;">
+                        <div class="stat-icon-circle" style="background: rgba(0, 247, 255, 0.2);">
+                            <i class="fas fa-receipt" style="color: #00f7ff;"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalInvoicesCount" style="color: #00f7ff;">0</div>
+                            <div class="stat-label">Total Invoices</div>
+                            <div class="stat-subtext">All time records</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card-rectangle" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border-left: 4px solid #10b981;">
+                        <div class="stat-icon-circle" style="background: rgba(16, 185, 129, 0.2);">
+                            <i class="fas fa-rupee-sign" style="color: #10b981;"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalInvoiceAmount" style="color: #10b981;">₹0</div>
+                            <div class="stat-label">Total Revenue</div>
+                            <div class="stat-subtext">Lifetime earnings</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card-rectangle" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-left: 4px solid #ef4444;">
+                        <div class="stat-icon-circle" style="background: rgba(239, 68, 68, 0.2);">
+                            <i class="fas fa-calendar-day" style="color: #ef4444;"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="todayInvoicesCount" style="color: #ef4444;">0</div>
+                            <div class="stat-label">Today's Invoices</div>
+                            <div class="stat-subtext">Live count</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card-rectangle" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-left: 4px solid #8b5cf6;">
+                        <div class="stat-icon-circle" style="background: rgba(139, 92, 246, 0.2);">
+                            <i class="fas fa-users" style="color: #8b5cf6;"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="uniqueCustomersCount" style="color: #8b5cf6;">0</div>
+                            <div class="stat-label">Unique Customers</div>
+                            <div class="stat-subtext">Customer base</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search and Filter Bar -->
+                <div class="search-filter-bar" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px;">
+                    <div class="search-section">
+                        <div class="modern-search-box">
+                            <i class="fas fa-search" style="color: #00f7ff;"></i>
+                            <input type="text" id="invoiceSearch" placeholder="Search invoices, customers, items..." 
+                                   style="background: #0f172a; color: white; border: 1px solid #475569;">
+                            <button class="search-action-btn" onclick="filterInvoiceHistory()" style="background: #00f7ff;">
+                                <i class="fas fa-arrow-right" style="color: #0f172a;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <div class="filter-pills">
+                            <div class="filter-pill active" onclick="setTimeFilter('all')">All Time</div>
+                            <div class="filter-pill" onclick="setTimeFilter('today')">Today</div>
+                            <div class="filter-pill" onclick="setTimeFilter('week')">This Week</div>
+                            <div class="filter-pill" onclick="setTimeFilter('month')">This Month</div>
+                        </div>
+                        
+                        <div class="filter-dropdowns">
+                            <select id="invoicePaymentFilter" onchange="filterInvoiceHistory()" 
+                                    style="background: #0f172a; border: 1px solid #475569; color: white;">
+                                <option value="all">All Payments</option>
+                                <option value="cash">💵 Cash</option>
+                                <option value="upi">📱 UPI</option>
+                                <option value="card">💳 Card</option>
+                                <option value="udhaar">📝 Udhaar</option>
+                            </select>
+                            
+                            <button class="filter-reset-btn" onclick="resetInvoiceFilters()">
+                                <i class="fas fa-refresh"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoice Cards Grid -->
+                <div class="invoice-cards-grid" id="invoiceCardsContainer">
+                    <!-- Invoice cards will be loaded here -->
+                </div>
+
+                <!-- Summary Footer -->
+                <div class="summary-footer" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px;">
+                    <div class="summary-stats">
+                        <div class="summary-stat">
+                            <span class="summary-label">📊 Total Processed:</span>
+                            <span class="summary-value" id="summaryInvoicesCount">0 invoices</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="summary-label">💰 Total Amount:</span>
+                            <span class="summary-value" id="summaryInvoiceAmount">₹0</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="summary-label">📈 Average Bill:</span>
+                            <span class="summary-value" id="summaryInvoiceAverage">₹0</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="summary-label">✅ Success Rate:</span>
+                            <span class="summary-value" id="summarySuccessRate">100%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    if (!document.getElementById('invoiceHistoryModal')) {
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+}
+
+// Load Invoice History - RECTANGLE CARDS DESIGN
+function loadInvoiceHistory() {
+    const paymentData = JSON.parse(localStorage.getItem('sparkinvoice_payments') || '{"customers":[]}');
+    const oldInvoices = JSON.parse(localStorage.getItem('sparkinvoice_invoices') || '[]');
+    
+    const invoices = paymentData.customers && paymentData.customers.length > 0 
+        ? paymentData.customers 
+        : oldInvoices;
+    
+    updateInvoiceStats(invoices);
+    renderInvoiceCards(invoices);
+}
+
+// Render Invoice Cards
+function renderInvoiceCards(invoices) {
+    const container = document.getElementById('invoiceCardsContainer');
+    
+    if (invoices.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state-card" style="text-align: center; padding: 60px 20px; color: #64748b;">
+                <div class="empty-icon" style="font-size: 4rem; color: #475569; margin-bottom: 20px;">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <h3 style="color: #94a3b8; margin-bottom: 10px;">No Invoices Yet</h3>
+                <p style="color: #64748b; margin-bottom: 20px;">Create your first invoice to get started</p>
+                <button class="btn-primary" onclick="closeModal('invoiceHistoryModal')" 
+                        style="background: #00f7ff; color: #0f172a; padding: 12px 24px; border-radius: 8px;">
+                    <i class="fas fa-plus"></i> Create Invoice
+                </button>
+            </div>
+        `;
+        updateInvoiceSummary(0, 0, 0);
+        return;
+    }
+    
+    let cardsHTML = '';
+    
+    // Sort invoices by date (newest first)
+    const sortedInvoices = invoices.sort((a, b) => 
+        new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
+    );
+    
+    sortedInvoices.forEach(invoice => {
+        const date = new Date(invoice.timestamp || invoice.createdAt);
+        const dateStr = date.toLocaleDateString('en-IN');
+        const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        
+        // Get invoice details
+        const invoiceNumber = invoice.id || invoice.number || 'INV-001';
+        const amount = invoice.amount || invoice.total || '₹0';
+        const paymentMethod = invoice.paymentMode || invoice.paymentMethod || 'cash';
+        
+        // Get items preview
+        const items = invoice.items || [];
+        const itemsCount = items.length;
+        const itemsPreview = items.slice(0, 3).map(item => 
+            item.description || item.name || 'Item'
+        ).join(', ') + (items.length > 3 ? ` +${items.length - 3} more` : '');
+        
+        // Payment method icon
+        const paymentIcons = {
+            'cash': '💵',
+            'upi': '📱', 
+            'card': '💳',
+            'udhaar': '📝'
+        };
+        
+        const paymentIcon = paymentIcons[paymentMethod] || '💰';
+
+        cardsHTML += `
+            <div class="invoice-card" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border: 1px solid #475569; border-radius: 16px;">
+                <!-- Card Header -->
+                <div class="card-header" style="border-bottom: 1px solid #475569; padding: 20px;">
+                    <div class="header-top">
+                        <div class="invoice-badge" style="background: rgba(0, 247, 255, 0.2); color: #00f7ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.9rem;">
+                            ${invoiceNumber}
+                        </div>
+                        <div class="payment-badge" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6; padding: 6px 12px; border-radius: 12px; font-size: 0.8rem;">
+                            ${paymentIcon} ${paymentMethod}
+                        </div>
+                    </div>
+                    
+                    <div class="customer-info" style="margin-top: 15px;">
+                        <div class="customer-avatar-large" style="width: 50px; height: 50px; border-radius: 12px; background: rgba(0, 247, 255, 0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #00f7ff; font-size: 1.2rem;">
+                            ${invoice.customer.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </div>
+                        <div class="customer-details" style="margin-left: 15px;">
+                            <div class="customer-name" style="font-size: 1.1rem; font-weight: 600; color: white; margin-bottom: 4px;">${invoice.customer}</div>
+                            <div class="customer-contact" style="color: #94a3b8; font-size: 0.9rem;">${invoice.phone || 'No phone'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body" style="padding: 20px;">
+                    <div class="invoice-details-grid">
+                        <div class="detail-item">
+                            <div class="detail-label" style="color: #64748b; font-size: 0.8rem; margin-bottom: 4px;">Date & Time</div>
+                            <div class="detail-value" style="color: white; font-weight: 500;">${dateStr}</div>
+                            <div class="detail-subtext" style="color: #94a3b8; font-size: 0.8rem;">${timeStr}</div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label" style="color: #64748b; font-size: 0.8rem; margin-bottom: 4px;">Items Count</div>
+                            <div class="detail-value" style="color: white; font-weight: 500;">${itemsCount} items</div>
+                            <div class="detail-subtext" style="color: #94a3b8; font-size: 0.8rem;">in this invoice</div>
+                        </div>
+                    </div>
+
+                    <div class="items-preview" style="margin-top: 15px;">
+                        <div class="detail-label" style="color: #64748b; font-size: 0.8rem; margin-bottom: 8px;">Items</div>
+                        <div class="items-list" style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.4;">
+                            ${itemsPreview || 'No items listed'}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Footer -->
+                <div class="card-footer" style="border-top: 1px solid #475569; padding: 20px; background: rgba(0, 0, 0, 0.2);">
+                    <div class="footer-content">
+                        <div class="amount-section">
+                            <div class="amount-label" style="color: #64748b; font-size: 0.8rem;">Total Amount</div>
+                            <div class="amount-value" style="color: #10b981; font-size: 1.3rem; font-weight: 700;">${amount}</div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="action-btn view" onclick="viewInvoiceDetails('${invoice.id || invoiceNumber}')" title="View Invoice" style="background: rgba(0, 247, 255, 0.2); color: #00f7ff;">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn download" onclick="downloadInvoice('${invoice.id || invoiceNumber}')" title="Download" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="action-btn print" onclick="printInvoice('${invoice.id || invoiceNumber}')" title="Print" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">
+                                <i class="fas fa-print"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = cardsHTML;
+    updateInvoiceSummary(invoices.length, 
+        invoices.reduce((sum, inv) => {
+            if (inv.amountValue) return sum + inv.amountValue;
+            if (inv.amount) return sum + parseFloat(inv.amount.replace('₹', '') || 0);
+            if (inv.total) return sum + parseFloat(inv.total.replace('₹', '') || 0);
+            return sum;
+        }, 0), 0);
+}
+
+
+
+
+
+
+
+// Quick Fix Functions - Add this at the end of your file
+function setTimeFilter(filter) {
+    document.getElementById('invoiceTimeFilter').value = filter;
+    filterInvoiceHistory();
+}
+
+function updateInvoiceStats(invoices) {
+    const totalInvoices = invoices.length;
+    const totalAmount = invoices.reduce((sum, inv) => {
+        if (inv.amountValue) return sum + inv.amountValue;
+        if (inv.amount) return sum + parseFloat(inv.amount.replace('₹', '') || 0);
+        if (inv.total) return sum + parseFloat(inv.total.replace('₹', '') || 0);
+        return sum;
+    }, 0);
+    
+    const today = new Date().toDateString();
+    const todayInvoices = invoices.filter(inv => {
+        const invDate = new Date(inv.timestamp || inv.createdAt).toDateString();
+        return invDate === today;
+    });
+    
+    const uniqueCustomers = [...new Set(invoices.map(inv => inv.customer))].length;
+    
+    if (document.getElementById('totalInvoicesCount')) {
+        document.getElementById('totalInvoicesCount').textContent = totalInvoices;
+        document.getElementById('totalInvoiceAmount').textContent = '₹' + totalAmount.toFixed(2);
+        document.getElementById('todayInvoicesCount').textContent = todayInvoices.length;
+        document.getElementById('uniqueCustomersCount').textContent = uniqueCustomers;
+    }
+}
+
+function updateInvoiceSummary(invoiceCount, totalAmount, successRate) {
+    if (document.getElementById('summaryInvoicesCount')) {
+        document.getElementById('summaryInvoicesCount').textContent = invoiceCount + ' invoices';
+        document.getElementById('summaryInvoiceAmount').textContent = '₹' + totalAmount.toFixed(2);
+        document.getElementById('summaryInvoiceAverage').textContent = invoiceCount > 0 ? 
+            '₹' + (totalAmount / invoiceCount).toFixed(2) : '₹0';
+        document.getElementById('summarySuccessRate').textContent = '100%';
+    }
+}
+
+// Make sure these functions exist
+function viewInvoiceDetails(invoiceId) {
+    showNotification('Opening invoice details...', 'info');
+    // Add your view invoice logic here
+}
+
+function downloadInvoice(invoiceId) {
+    showNotification('Downloading invoice...', 'info');
+    // Add your download logic here
+}
+
+function printInvoice(invoiceId) {
+    showNotification('Printing invoice...', 'info');
+    // Add your print logic here
+}
+
+function exportInvoiceData() {
+    showNotification('Exporting invoice data...', 'info');
+    // Add your export logic here
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
